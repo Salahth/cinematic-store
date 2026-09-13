@@ -15,50 +15,48 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
   const isAnimatingRef = useRef(false);
+  const animTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const activeTheme = products[activeIndex].theme;
 
   /* ---------- Navigation ---------- */
-  const goTo = (i: number) => {
+  const goTo = (i: number, dir?: 1 | -1) => {
     if (i < 0 || i >= products.length) return;
     if (i === activeIndex) return;
     if (isAnimatingRef.current) return;
 
-    setDirection(i > activeIndex ? 1 : -1);
+    const newDirection = dir ?? (i > activeIndex ? 1 : -1);
+    setDirection(newDirection);
     isAnimatingRef.current = true;
     setActiveIndex(i);
 
-    setTimeout(() => {
+    if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
+    animTimeoutRef.current = setTimeout(() => {
       isAnimatingRef.current = false;
-    }, 100);
+    }, 700);
   };
 
-  const next = () => goTo(activeIndex + 1);
-  const prev = () => goTo(activeIndex - 1);
+  const next = () => goTo(activeIndex + 1, 1);
+  const prev = () => goTo(activeIndex - 1, -1);
 
   /* ---------- Wheel / Trackpad ---------- */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    let wheelTimeout: NodeJS.Timeout;
-
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
       if (isAnimatingRef.current) return;
       if (Math.abs(e.deltaY) < 20) return;
 
-      clearTimeout(wheelTimeout);
-      wheelTimeout = setTimeout(() => {
-        if (e.deltaY > 0) next();
-        else prev();
-      }, 10);
+      // تنفيذ فوري بدون تأخير لتجنب تراكم الأحداث
+      if (e.deltaY > 0) next();
+      else prev();
     };
 
     el.addEventListener("wheel", onWheel, { passive: false });
     return () => {
       el.removeEventListener("wheel", onWheel);
-      clearTimeout(wheelTimeout);
     };
   }, [activeIndex, products.length]);
 
@@ -107,8 +105,8 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
         e.preventDefault();
         prev();
       }
-      if (e.key === "Home") goTo(0);
-      if (e.key === "End") goTo(products.length - 1);
+      if (e.key === "Home") goTo(0, -1);
+      if (e.key === "End") goTo(products.length - 1, 1);
     };
 
     window.addEventListener("keydown", onKey);
@@ -120,6 +118,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = "";
+      if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
     };
   }, []);
 
@@ -158,14 +157,10 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
       >
         {/* ============================================
             LAYERED BACKGROUNDS — smooth cross-fade between products
-            Each product has its own full-screen gradient layer.
-            Only the active one is fully visible; others fade smoothly.
            ============================================ */}
         <div className="absolute inset-0 -z-10">
           {products.map((p, i) => {
             const isActive = i === activeIndex;
-
-            // Delay the fade slightly so colors blend during the product slide
             const fadeDuration = 0.9;
 
             return (
@@ -187,7 +182,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             );
           })}
 
-          {/* Ambient glow layer — cross-fades with active product */}
+          {/* Ambient glow layer */}
           {products.map((p, i) => {
             const isActive = i === activeIndex;
             return (
@@ -209,7 +204,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             );
           })}
 
-          {/* Permanent vignette on top (doesn't change) */}
+          {/* Permanent vignette */}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{
@@ -232,48 +227,10 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             initial="enter"
             animate="center"
             exit="exit"
-           
-            
-            
-
-
-
-
-
-
-
-
-            
-            
-            
             transition={{
-  y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-  opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
-  scale: { duration: 1, ease: [0.16, 1, 0.3, 1] },
-           
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+              y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+              opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
+              scale: { duration: 1, ease: [0.16, 1, 0.3, 1] },
             }}
             className="absolute inset-0 will-change-transform"
           >
