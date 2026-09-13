@@ -162,17 +162,19 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
         style={{ touchAction: "none" }}
       >
         {/* Animated background (changes with each product) */}
-        <motion.div
-          key={`bg-${activeIndex}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="absolute inset-0 -z-10"
-          style={{
-            background: `radial-gradient(120% 100% at 65% 40%, ${products[activeIndex].palette.to} 0%, ${products[activeIndex].palette.via} 45%, ${products[activeIndex].palette.from} 100%)`,
-          }}
-        />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`bg-${activeIndex}`}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-0 -z-10"
+            style={{
+              background: `radial-gradient(120% 100% at 65% 40%, ${products[activeIndex].palette.to} 0%, ${products[activeIndex].palette.via} 45%, ${products[activeIndex].palette.from} 100%)`,
+            }}
+          />
+        </AnimatePresence>
 
         {/* Product scenes with AnimatePresence */}
         <AnimatePresence mode="popLayout" custom={direction}>
@@ -193,7 +195,6 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             <ProductScene
               product={products[activeIndex]}
               index={activeIndex}
-              globalProgress={null as any}
               isActive={true}
             />
           </motion.div>
@@ -248,11 +249,12 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
 
         {/* Progress counter (bottom) */}
         <div className="absolute bottom-8 right-6 md:right-10 z-30 text-white/60 text-xs tabular-nums tracking-widest">
-          {String(activeIndex + 1).padStart(2, "0")} / {String(products.length).padStart(2, "0")}
+          {String(activeIndex + 1).padStart(2, "0")} /{" "}
+          {String(products.length).padStart(2, "0")}
         </div>
       </div>
 
-      {/* Bottom spacer so footer can be reached by scrolling past */}
+      {/* Bottom spacer so footer can be reached */}
       <div style={{ height: "100vh" }} />
     </>
   );
