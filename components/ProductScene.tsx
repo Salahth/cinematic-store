@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { Product } from "@/data/products";
 import { formatDZD, cn } from "@/lib/utils";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useCart } from "@/store/cart";
 
 type Props = {
@@ -26,12 +26,6 @@ export function ProductScene({ product, index, isActive }: Props) {
   const textSubtle = isDark ? "text-white/65" : "text-neutral-900/60";
   const borderCol = isDark ? "border-white/15" : "border-black/15";
   const chipBg = isDark ? "bg-white/10" : "bg-black/5";
-
-  const gradient = useMemo(
-    () =>
-      `radial-gradient(120% 90% at 70% 40%, ${product.palette.to} 0%, ${product.palette.via} 42%, ${product.palette.from} 100%)`,
-    [product.palette]
-  );
 
   const onAddToCart = () => {
     add(
@@ -89,48 +83,6 @@ export function ProductScene({ product, index, isActive }: Props) {
       className="relative h-screen w-full flex items-center justify-center overflow-hidden"
       aria-label={product.name}
     >
-      {/* Local background layer */}
-      <div
-        className="absolute inset-0 -z-20"
-        style={{ background: gradient }}
-      />
-
-      {/* Decorative blurred blobs (behind product) */}
-      <div className="absolute -z-10 pointer-events-none">
-        <div
-          className="absolute rounded-full blur-[120px]"
-          style={{
-            width: 620,
-            height: 620,
-            left: "50%",
-            top: "50%",
-            transform: "translate(-50%, -55%)",
-            background: product.palette.glow,
-          }}
-        />
-        <div
-          className="absolute rounded-full blur-[90px] opacity-70"
-          style={{
-            width: 340,
-            height: 340,
-            left: "58%",
-            top: "62%",
-            transform: "translate(-50%, -50%)",
-            background: product.palette.glow,
-          }}
-        />
-      </div>
-
-      {/* Vignette */}
-      <div
-        className="absolute inset-0 -z-10 pointer-events-none"
-        style={{
-          background:
-            "radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)",
-          opacity: isDark ? 0.9 : 0.35,
-        }}
-      />
-
       {/* Content grid */}
       <motion.div
         variants={container}
