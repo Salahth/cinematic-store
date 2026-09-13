@@ -29,8 +29,8 @@ export const products: Product[] = [
     headline: "Performance meets everyday style.",
     description:
       "Engineered with visible Air cushioning and a breathable mesh upper. Built to move with you — from the street to the studio.",
-    price: 15900,
-    oldPrice: 19900,
+    price: 3200,
+    oldPrice: 4000,
     discount: 20,
     image: "/products/shoe-red.png",
     palette: {
@@ -55,7 +55,8 @@ export const products: Product[] = [
     headline: "Cold-blooded comfort. Ice-clear focus.",
     description:
       "A glacial colorway on the same legendary Air platform. Lightweight, responsive, and unmistakably fresh.",
-    price: 18900,
+    price: 3800,
+    oldPrice: 5000,
     image: "/products/shoe-cyan.png",
     palette: {
       from: "#03202b",
@@ -79,7 +80,8 @@ export const products: Product[] = [
     headline: "Stealth mode, activated.",
     description:
       "Triple-black construction with matte and gloss contrasts. A silhouette that disappears into the night — quietly powerful.",
-    price: 21500,
+    price: 3500,
+    oldPrice: 4000,
     image: "/products/shoe-black.png",
     palette: {
       from: "#050505",
@@ -99,8 +101,8 @@ export const products: Product[] = [
     headline: "Pure. Clean. Effortless.",
     description:
       "An all-white icon with subtle off-white detailing. Pairs with everything, elevates anything.",
-    price: 17500,
-    oldPrice: 20500,
+    price: 7000,
+    oldPrice: 9000,
     discount: 15,
     image: "/products/shoe-white.png",
     palette: {
@@ -124,7 +126,8 @@ export const products: Product[] = [
     headline: "Warmth you can wear.",
     description:
       "Sunset-inspired gradients on a cushioned base. For the ones who chase golden hour, every hour.",
-    price: 19900,
+    price: 2600,
+    oldPrice: 3000,
     image: "/products/shoe-orange.png",
     palette: {
       from: "#3d1200",
@@ -147,8 +150,8 @@ export const products: Product[] = [
   category: "Performance Sneaker",
   headline: "Bold color. Bold moves.",
   description: "A statement silhouette with purple accents...",
-  price: 17900,
-  oldPrice: 21900,                         // اختياري
+  price: 6500,
+  oldPrice: 8000,                         // اختياري
   discount: 18,                            // اختياري
   image: "/products/shoe-purple.png",      // ضع الصورة في public/products/
   palette: {
