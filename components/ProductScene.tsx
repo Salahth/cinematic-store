@@ -54,7 +54,7 @@ export function ProductScene({ product, index, isActive }: Props) {
     }, 300);
   };
 
-  /* ---------- Animation variants for internal stagger ---------- */
+  /* ---------- Animation variants (staggered reveal) ---------- */
   const container = {
     hidden: {},
     show: {
