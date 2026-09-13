@@ -30,7 +30,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
 
     setTimeout(() => {
       isAnimatingRef.current = false;
-    }, 650);
+    }, 700);
   };
 
   const next = () => goTo(activeIndex + 1);
@@ -45,11 +45,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
 
     const onWheel = (e: WheelEvent) => {
       e.preventDefault();
-
-      // Throttle: ignore rapid wheel events during animation
       if (isAnimatingRef.current) return;
-
-      // Ignore small movements (trackpad noise)
       if (Math.abs(e.deltaY) < 20) return;
 
       clearTimeout(wheelTimeout);
@@ -66,7 +62,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
     };
   }, [activeIndex, products.length]);
 
-  /* ---------- Touch (mobile swipe) ---------- */
+  /* ---------- Touch ---------- */
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -85,7 +81,6 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
       const duration = Date.now() - touchStartTime;
       const velocity = Math.abs(diff) / duration;
 
-      // Swipe threshold: 50px OR fast flick (velocity > 0.5)
       if (Math.abs(diff) > 50 || velocity > 0.5) {
         if (diff > 0) next();
         else prev();
@@ -128,12 +123,12 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
     };
   }, []);
 
-  /* ---------- Transition variants (Reels-style) ---------- */
-  const variants = {
+  /* ---------- Product slide (Reels-style snap) ---------- */
+  const productVariants = {
     enter: (dir: number) => ({
       y: dir > 0 ? "100%" : "-100%",
       opacity: 0,
-      scale: 0.9,
+      scale: 0.92,
     }),
     center: {
       y: 0,
@@ -141,9 +136,9 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
       scale: 1,
     },
     exit: (dir: number) => ({
-      y: dir > 0 ? "-50%" : "50%",
+      y: dir > 0 ? "-60%" : "60%",
       opacity: 0,
-      scale: 0.85,
+      scale: 0.86,
     }),
   };
 
@@ -161,34 +156,86 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
         className="fixed inset-0 overflow-hidden select-none"
         style={{ touchAction: "none" }}
       >
-        {/* Animated background (changes with each product) */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={`bg-${activeIndex}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute inset-0 -z-10"
+        {/* ============================================
+            LAYERED BACKGROUNDS — smooth cross-fade between products
+            Each product has its own full-screen gradient layer.
+            Only the active one is fully visible; others fade smoothly.
+           ============================================ */}
+        <div className="absolute inset-0 -z-10">
+          {products.map((p, i) => {
+            const isActive = i === activeIndex;
+
+            // Delay the fade slightly so colors blend during the product slide
+            const fadeDuration = 0.9;
+
+            return (
+              <motion.div
+                key={`bg-${p.id}`}
+                initial={false}
+                animate={{
+                  opacity: isActive ? 1 : 0,
+                }}
+                transition={{
+                  duration: fadeDuration,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="absolute inset-0 will-change-opacity"
+                style={{
+                  background: `radial-gradient(120% 100% at 65% 40%, ${p.palette.to} 0%, ${p.palette.via} 45%, ${p.palette.from} 100%)`,
+                }}
+              />
+            );
+          })}
+
+          {/* Ambient glow layer — cross-fades with active product */}
+          {products.map((p, i) => {
+            const isActive = i === activeIndex;
+            return (
+              <motion.div
+                key={`glow-${p.id}`}
+                initial={false}
+                animate={{
+                  opacity: isActive ? 1 : 0,
+                }}
+                transition={{
+                  duration: 1.1,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className="absolute inset-0 pointer-events-none will-change-opacity"
+                style={{
+                  background: `radial-gradient(80% 60% at 65% 45%, ${p.palette.glow} 0%, transparent 70%)`,
+                }}
+              />
+            );
+          })}
+
+          {/* Permanent vignette on top (doesn't change) */}
+          <div
+            className="absolute inset-0 pointer-events-none"
             style={{
-              background: `radial-gradient(120% 100% at 65% 40%, ${products[activeIndex].palette.to} 0%, ${products[activeIndex].palette.via} 45%, ${products[activeIndex].palette.from} 100%)`,
+              background:
+                "radial-gradient(120% 90% at 50% 50%, transparent 55%, rgba(0,0,0,0.55) 100%)",
+              opacity: activeTheme === "dark" ? 0.9 : 0.35,
+              transition: "opacity 0.7s ease",
             }}
           />
-        </AnimatePresence>
+        </div>
 
-        {/* Product scenes with AnimatePresence */}
+        {/* ============================================
+            PRODUCT CONTENT — Reels-style snap
+           ============================================ */}
         <AnimatePresence mode="popLayout" custom={direction}>
           <motion.div
             key={products[activeIndex].id}
             custom={direction}
-            variants={variants}
+            variants={productVariants}
             initial="enter"
             animate="center"
             exit="exit"
             transition={{
-              y: { type: "spring", stiffness: 300, damping: 32 },
-              opacity: { duration: 0.35 },
-              scale: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+              y: { type: "spring", stiffness: 280, damping: 30 },
+              opacity: { duration: 0.4 },
+              scale: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
             }}
             className="absolute inset-0 will-change-transform"
           >
@@ -200,7 +247,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
           </motion.div>
         </AnimatePresence>
 
-        {/* Right-side product indicator */}
+        {/* Right-side indicator */}
         <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 z-30">
           <ProductIndicator
             total={products.length}
@@ -211,7 +258,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
           />
         </div>
 
-        {/* Up/Down arrow buttons (desktop) */}
+        {/* Up/Down arrows (desktop) */}
         <div className="hidden md:flex flex-col gap-2 absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
           <button
             onClick={prev}
@@ -247,14 +294,13 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
           </button>
         </div>
 
-        {/* Progress counter (bottom) */}
+        {/* Progress counter */}
         <div className="absolute bottom-8 right-6 md:right-10 z-30 text-white/60 text-xs tabular-nums tracking-widest">
           {String(activeIndex + 1).padStart(2, "0")} /{" "}
           {String(products.length).padStart(2, "0")}
         </div>
       </div>
 
-      {/* Bottom spacer so footer can be reached */}
       <div style={{ height: "100vh" }} />
     </>
   );
