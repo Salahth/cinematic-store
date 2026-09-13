@@ -232,10 +232,48 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             initial="enter"
             animate="center"
             exit="exit"
-           transition={{
+           
+            
+            
+
+
+
+
+
+
+
+
+            
+            
+            
+            transition={{
   y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-  opacity: { duration: 1, ease: [0.25, 0.1, 0.25, 1] },
+  opacity: { duration: 0.5, ease: [0.25, 0.1, 0.25, 1] },
   scale: { duration: 1, ease: [0.16, 1, 0.3, 1] },
+           
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             }}
             className="absolute inset-0 will-change-transform"
           >
