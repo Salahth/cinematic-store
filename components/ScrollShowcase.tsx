@@ -19,16 +19,20 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
 
   const activeTheme = products[activeIndex].theme;
 
-  /* ---------- Navigation ---------- */
+  /* ---------- Navigation (Infinite Loop) ---------- */
   const goTo = (i: number, dir?: 1 | -1) => {
-    if (i < 0 || i >= products.length) return;
     if (i === activeIndex) return;
     if (isAnimatingRef.current) return;
+
+    // دوران لا نهائي: إذا تجاوزنا الحدود نعود للبداية أو النهاية
+    let targetIndex = i;
+    if (i >= products.length) targetIndex = 0;
+    if (i < 0) targetIndex = products.length - 1;
 
     const newDirection = dir ?? (i > activeIndex ? 1 : -1);
     setDirection(newDirection);
     isAnimatingRef.current = true;
-    setActiveIndex(i);
+    setActiveIndex(targetIndex);
 
     if (animTimeoutRef.current) clearTimeout(animTimeoutRef.current);
     animTimeoutRef.current = setTimeout(() => {
@@ -49,7 +53,6 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
       if (isAnimatingRef.current) return;
       if (Math.abs(e.deltaY) < 20) return;
 
-      // تنفيذ فوري بدون تأخير لتجنب تراكم الأحداث
       if (e.deltaY > 0) next();
       else prev();
     };
@@ -257,8 +260,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
         <div className="hidden md:flex flex-col gap-2 absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
           <button
             onClick={prev}
-            disabled={activeIndex === 0}
-            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all"
             aria-label="Précédent"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -273,8 +275,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
           </button>
           <button
             onClick={next}
-            disabled={activeIndex === products.length - 1}
-            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all"
             aria-label="Suivant"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
