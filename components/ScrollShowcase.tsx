@@ -30,7 +30,7 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
 
     setTimeout(() => {
       isAnimatingRef.current = false;
-    }, 700);
+    }, 100);
   };
 
   const next = () => goTo(activeIndex + 1);
@@ -232,10 +232,10 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{
-              y: { type: "spring", stiffness: 280, damping: 30 },
-              opacity: { duration: 0.4 },
-              scale: { duration: 0.6, ease: [0.22, 1, 0.36, 1] },
+           transition={{
+  y: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+  opacity: { duration: 1, ease: [0.25, 0.1, 0.25, 1] },
+  scale: { duration: 1, ease: [0.16, 1, 0.3, 1] },
             }}
             className="absolute inset-0 will-change-transform"
           >
