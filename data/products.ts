@@ -162,7 +162,6 @@ export const products: Product[] = [
   sizes: ["39", "40", "41", "42", "43", "44"],
   colors: [
     { name: "Purple", hex: "#a855f7" },
-    { name: "Black", hex: "#000000" },
   ],
   badge: "Édition limitée",                // اختياري
 },
