@@ -1,12 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import {
-  motion,
-  useScroll,
-  useTransform,
-  MotionValue,
-  useMotionValueEvent,
-} from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { products as defaultProducts, Product } from "@/data/products";
 import { ProductScene } from "./ProductScene";
 import { Header } from "./Header";
@@ -17,46 +11,141 @@ type Props = {
 };
 
 export function ScrollShowcase({ products = defaultProducts }: Props) {
-  (globalThis as any).__PRODUCTS_LEN__ = products.length;
-
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState<1 | -1>(1);
+  const isAnimatingRef = useRef(false);
+
   const activeTheme = products[activeIndex].theme;
 
-  // Each product = 1 unit of scroll, with extra virtual length for smooth enters.
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"],
-  });
+  /* ---------- Navigation ---------- */
+  const goTo = (i: number) => {
+    if (i < 0 || i >= products.length) return;
+    if (i === activeIndex) return;
+    if (isAnimatingRef.current) return;
 
-  // Global progress mapped 0..products.length
-  const globalProgress = useTransform(
-    scrollYProgress,
-    [0, 1],
-    [0, products.length]
-  );
+    setDirection(i > activeIndex ? 1 : -1);
+    isAnimatingRef.current = true;
+    setActiveIndex(i);
 
-  useMotionValueEvent(globalProgress, "change", (v) => {
-    const idx = Math.min(products.length - 1, Math.max(0, Math.round(v - 0.0001)));
-    // Determine active by nearest center: each product's "center" is at its index.
-    const next = Math.min(
-      products.length - 1,
-      Math.max(0, Math.floor(v + 0.5))
-    );
-    if (next !== activeIndex) setActiveIndex(next);
-  });
-
-  const scrollToIndex = (i: number) => {
-    const el = containerRef.current;
-    if (!el) return;
-    const total = el.offsetHeight - window.innerHeight;
-    const target = (i / products.length) * total + el.offsetTop;
-    window.scrollTo({ top: target, behavior: "smooth" });
+    setTimeout(() => {
+      isAnimatingRef.current = false;
+    }, 650);
   };
 
-  // Background morph across whole page — layered gradients cross-fading.
-  const bgColors = products.map((p) => p.palette.from);
-  const bgStops = products.map((_, i) => i / Math.max(1, products.length - 1));
+  const next = () => goTo(activeIndex + 1);
+  const prev = () => goTo(activeIndex - 1);
+
+  /* ---------- Wheel / Trackpad ---------- */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let wheelTimeout: NodeJS.Timeout;
+
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+
+      // Throttle: ignore rapid wheel events during animation
+      if (isAnimatingRef.current) return;
+
+      // Ignore small movements (trackpad noise)
+      if (Math.abs(e.deltaY) < 20) return;
+
+      clearTimeout(wheelTimeout);
+      wheelTimeout = setTimeout(() => {
+        if (e.deltaY > 0) next();
+        else prev();
+      }, 10);
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      clearTimeout(wheelTimeout);
+    };
+  }, [activeIndex, products.length]);
+
+  /* ---------- Touch (mobile swipe) ---------- */
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    let touchStartY = 0;
+    let touchStartTime = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      touchStartY = e.touches[0].clientY;
+      touchStartTime = Date.now();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const touchEndY = e.changedTouches[0].clientY;
+      const diff = touchStartY - touchEndY;
+      const duration = Date.now() - touchStartTime;
+      const velocity = Math.abs(diff) / duration;
+
+      // Swipe threshold: 50px OR fast flick (velocity > 0.5)
+      if (Math.abs(diff) > 50 || velocity > 0.5) {
+        if (diff > 0) next();
+        else prev();
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [activeIndex, products.length]);
+
+  /* ---------- Keyboard ---------- */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "PageDown" || e.key === " ") {
+        e.preventDefault();
+        next();
+      }
+      if (e.key === "ArrowUp" || e.key === "PageUp") {
+        e.preventDefault();
+        prev();
+      }
+      if (e.key === "Home") goTo(0);
+      if (e.key === "End") goTo(products.length - 1);
+    };
+
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeIndex, products.length]);
+
+  /* ---------- Prevent page scroll ---------- */
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  /* ---------- Transition variants (Reels-style) ---------- */
+  const variants = {
+    enter: (dir: number) => ({
+      y: dir > 0 ? "100%" : "-100%",
+      opacity: 0,
+      scale: 0.9,
+    }),
+    center: {
+      y: 0,
+      opacity: 1,
+      scale: 1,
+    },
+    exit: (dir: number) => ({
+      y: dir > 0 ? "-50%" : "50%",
+      opacity: 0,
+      scale: 0.85,
+    }),
+  };
 
   return (
     <>
@@ -66,129 +155,105 @@ export function ScrollShowcase({ products = defaultProducts }: Props) {
         total={products.length}
       />
 
+      {/* Fixed full-screen viewport */}
       <div
         ref={containerRef}
-        className="relative"
-        style={{
-          height: `${products.length * 100}vh`,
-          scrollSnapType: "y mandatory",
-        }}
+        className="fixed inset-0 overflow-hidden select-none"
+        style={{ touchAction: "none" }}
       >
-        {/* Sticky viewport that holds everything */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
-          {/* Base animated background (morphing) */}
-          <MorphingBackground products={products} progress={globalProgress} />
+        {/* Animated background (changes with each product) */}
+        <motion.div
+          key={`bg-${activeIndex}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          className="absolute inset-0 -z-10"
+          style={{
+            background: `radial-gradient(120% 100% at 65% 40%, ${products[activeIndex].palette.to} 0%, ${products[activeIndex].palette.via} 45%, ${products[activeIndex].palette.from} 100%)`,
+          }}
+        />
 
-          {/* Product scenes stacked; only their opacity/transform controlled */}
-          <div className="absolute inset-0">
-            {products.map((p, i) => (
-              <div
-                key={p.id}
-                className="absolute inset-0"
-                style={{ scrollSnapAlign: "start" }}
-              >
-                <ProductScene
-                  product={p}
-                  index={i}
-                  globalProgress={globalProgress}
-                  isActive={i === activeIndex}
-                />
-              </div>
-            ))}
-          </div>
+        {/* Product scenes with AnimatePresence */}
+        <AnimatePresence mode="popLayout" custom={direction}>
+          <motion.div
+            key={products[activeIndex].id}
+            custom={direction}
+            variants={variants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{
+              y: { type: "spring", stiffness: 300, damping: 32 },
+              opacity: { duration: 0.35 },
+              scale: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+            }}
+            className="absolute inset-0 will-change-transform"
+          >
+            <ProductScene
+              product={products[activeIndex]}
+              index={activeIndex}
+              globalProgress={null as any}
+              isActive={true}
+            />
+          </motion.div>
+        </AnimatePresence>
 
-          {/* Right-side product indicator */}
-          <div className="pointer-events-none absolute right-6 md:right-10 top-1/2 -translate-y-1/2 z-30">
-            <div className="pointer-events-auto">
-              <ProductIndicator
-                total={products.length}
-                active={activeIndex}
-                theme={activeTheme}
-                names={products.map((p) => p.name)}
-                onSelect={scrollToIndex}
-              />
-            </div>
-          </div>
-
-          {/* Bottom subtle hint on first load */}
-          {activeIndex === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.4, duration: 1 }}
-              className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex flex-col items-center gap-2 text-white/60"
-            >
-              <span className="text-[10px] uppercase tracking-[0.3em]">
-                Scroll
-              </span>
-              <motion.span
-                animate={{ y: [0, 6, 0] }}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                className="w-px h-6 bg-white/50"
-              />
-            </motion.div>
-          )}
+        {/* Right-side product indicator */}
+        <div className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 z-30">
+          <ProductIndicator
+            total={products.length}
+            active={activeIndex}
+            theme={activeTheme}
+            names={products.map((p) => p.name)}
+            onSelect={goTo}
+          />
         </div>
 
-        {/* Scroll anchors to force snapping per product */}
-        {products.map((_, i) => (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              top: `${i * 100}vh`,
-              height: "100vh",
-              width: "100%",
-              scrollSnapAlign: "start",
-              pointerEvents: "none",
-            }}
-          />
-        ))}
+        {/* Up/Down arrow buttons (desktop) */}
+        <div className="hidden md:flex flex-col gap-2 absolute bottom-8 left-1/2 -translate-x-1/2 z-30">
+          <button
+            onClick={prev}
+            disabled={activeIndex === 0}
+            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Précédent"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="m6 15 6-6 6 6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+          <button
+            onClick={next}
+            disabled={activeIndex === products.length - 1}
+            className="w-10 h-10 rounded-full border border-white/20 backdrop-blur-md grid place-items-center text-white hover:bg-white/10 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+            aria-label="Suivant"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+              <path
+                d="m6 9 6 6 6-6"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Progress counter (bottom) */}
+        <div className="absolute bottom-8 right-6 md:right-10 z-30 text-white/60 text-xs tabular-nums tracking-widest">
+          {String(activeIndex + 1).padStart(2, "0")} / {String(products.length).padStart(2, "0")}
+        </div>
       </div>
+
+      {/* Bottom spacer so footer can be reached by scrolling past */}
+      <div style={{ height: "100vh" }} />
     </>
-  );
-}
-
-/**
- * A layered background that cross-fades between product palettes
- * as the global progress moves from one product to the next.
- */
-function MorphingBackground({
-  products,
-  progress,
-}: {
-  products: Product[];
-  progress: MotionValue<number>;
-}) {
-  return (
-    <div className="absolute inset-0 -z-30 bg-black">
-      {products.map((p, i) => (
-        <Layer key={p.id} product={p} index={i} progress={progress} />
-      ))}
-    </div>
-  );
-}
-
-function Layer({
-  product,
-  index,
-  progress,
-}: {
-  product: Product;
-  index: number;
-  progress: MotionValue<number>;
-}) {
-  // Layer i is fully visible at progress = i+1 (its center), fades in from i and out to i+2.
-  const start = index; // visible window start (progress units)
-  const end = index + 2;
-  const opacity = useTransform(progress, [start, index + 0.85, index + 1.15, end], [0, 0.9, 0.9, 0]);
-
-  const gradient = `radial-gradient(120% 100% at 65% 40%, ${product.palette.to} 0%, ${product.palette.via} 45%, ${product.palette.from} 100%)`;
-
-  return (
-    <motion.div
-      className="absolute inset-0"
-      style={{ background: gradient, opacity }}
-    />
   );
 }
