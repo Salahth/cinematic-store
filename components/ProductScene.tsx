@@ -1,5 +1,5 @@
 "use client";
-import { motion, useTransform, MotionValue } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { Product } from "@/data/products";
 import { formatDZD, cn } from "@/lib/utils";
@@ -9,14 +9,10 @@ import { useCart } from "@/store/cart";
 type Props = {
   product: Product;
   index: number;
-  /** Global scroll progress across the whole showcase (0..total) */
-  globalProgress: MotionValue<number>;
   isActive: boolean;
 };
 
-const SIZES_FALLBACK = ["39", "40", "41", "42", "43", "44"];
-
-export function ProductScene({ product, index, globalProgress, isActive }: Props) {
+export function ProductScene({ product, index, isActive }: Props) {
   const add = useCart((s) => s.add);
   const [selectedSize, setSelectedSize] = useState<string | undefined>(
     product.sizes?.[0]
@@ -25,118 +21,17 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
     product.colors?.[0]?.name
   );
 
-  // Each scene is 1 unit wide on the global progress axis.
-  // Scene N starts appearing at (N-1) and completes at N.
-  const start = index - 1;
-  const end = index;
-  const total = productsLengthFromContext();
-
-  // t: 0 → entering, 1 → exiting (only meaningful for scenes 1..N-1)
-  const t = useTransform(globalProgress, [start, end], [0, 1]);
-  // entrance offset: scene index 0 is always "on"
-  const entrance = useTransform(
-    globalProgress,
-    index === 0 ? [0, 0.001] : [start, end],
-    index === 0 ? [1, 1] : [0, 1]
-  );
-
-  // For non-first scenes: 0 → 1 across their own slide
-  const localIn = entrance;
-  // For non-last scenes: exiting factor as next one comes in
-  const exitT =
-    index === total - 1
-      ? useTransform(globalProgress, [0, 1], [1, 1])
-      : useTransform(globalProgress, [end, end + 1], [0, 1]);
-
-  // Composed visibility 0..1
-  const visibility = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => i * (1 - e)
-  );
-
-  // Product image transforms
-  const imageX = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => {
-      // entering from right, exiting to left
-      return (1 - i) * 260 - e * 260;
-    }
-  );
-  const imageScale = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => 0.82 + i * 0.18 - e * 0.14
-  );
-  const imageRotate = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => (1 - i) * 8 - e * 8
-  );
-  const imageOpacity = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => Math.min(i, 1 - e) * 0.95
-  );
-  const imageY = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => (1 - i) * 40 + e * 40
-  );
-  const imageBlur = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => (1 - i) * 8 + e * 8
-  );
-  const filter = useTransform(imageBlur, (b) => `blur(${b}px)`);
-
-  // Text transforms (left side) — appears slightly after image
-  const textX = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => {
-      const i2 = Math.max(0, (i - 0.15) / 0.85);
-      return (1 - i2) * -60 - e * 80;
-    }
-  );
-  const textOpacity = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => {
-      const i2 = Math.max(0, (i - 0.2) / 0.8);
-      return Math.min(i2, 1 - e) * 1;
-    }
-  );
-
-  // CTA & price slightly later
-  const ctaOpacity = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => {
-      const i2 = Math.max(0, (i - 0.4) / 0.6);
-      return Math.min(i2, 1 - e);
-    }
-  );
-  const ctaY = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => {
-      const i2 = Math.max(0, (i - 0.4) / 0.6);
-      return (1 - i2) * 30 + e * 20;
-    }
-  );
-
-  // Decorative blurred blobs
-  const decoScale = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => 0.7 + i * 0.4 - e * 0.2
-  );
-  const decoOpacity = useTransform(
-    [localIn, exitT],
-    ([i, e]: number[]) => Math.min(i, 1 - e) * 0.9
-  );
+  const isDark = product.theme === "dark";
+  const textPrimary = isDark ? "text-white" : "text-neutral-900";
+  const textSubtle = isDark ? "text-white/65" : "text-neutral-900/60";
+  const borderCol = isDark ? "border-white/15" : "border-black/15";
+  const chipBg = isDark ? "bg-white/10" : "bg-black/5";
 
   const gradient = useMemo(
     () =>
       `radial-gradient(120% 90% at 70% 40%, ${product.palette.to} 0%, ${product.palette.via} 42%, ${product.palette.from} 100%)`,
     [product.palette]
   );
-
-  const isDark = product.theme === "dark";
-  const textPrimary = isDark ? "text-white" : "text-neutral-900";
-  const textSubtle = isDark ? "text-white/65" : "text-neutral-900/60";
-  const borderCol = isDark ? "border-white/15" : "border-black/15";
-  const chipBg = isDark ? "bg-white/10" : "bg-black/5";
 
   const onAddToCart = () => {
     add(
@@ -155,10 +50,38 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
   const onOrderNow = () => {
     onAddToCart();
     setTimeout(() => {
-      document.dispatchEvent(
-        new CustomEvent("open-checkout")
-      );
+      document.dispatchEvent(new CustomEvent("open-checkout"));
     }, 300);
+  };
+
+  /* ---------- Animation variants for internal stagger ---------- */
+  const container = {
+    hidden: {},
+    show: {
+      transition: {
+        staggerChildren: 0.06,
+        delayChildren: 0.15,
+      },
+    },
+  };
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 24 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.55, ease: [0.22, 1, 0.36, 1] as const },
+    },
+  };
+
+  const imageReveal = {
+    hidden: { opacity: 0, scale: 0.85, y: 40 },
+    show: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] as const },
+    },
   };
 
   return (
@@ -166,20 +89,14 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
       className="relative h-screen w-full flex items-center justify-center overflow-hidden"
       aria-label={product.name}
     >
-      {/* Local background layer (morphs with progress) */}
-      <motion.div
+      {/* Local background layer */}
+      <div
         className="absolute inset-0 -z-20"
-        style={{ background: gradient, opacity: visibility }}
+        style={{ background: gradient }}
       />
 
       {/* Decorative blurred blobs (behind product) */}
-      <motion.div
-        className="absolute -z-10 pointer-events-none"
-        style={{
-          scale: decoScale,
-          opacity: decoOpacity,
-        }}
-      >
+      <div className="absolute -z-10 pointer-events-none">
         <div
           className="absolute rounded-full blur-[120px]"
           style={{
@@ -202,9 +119,9 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
             background: product.palette.glow,
           }}
         />
-      </motion.div>
+      </div>
 
-      {/* Subtle grid / vignette texture */}
+      {/* Vignette */}
       <div
         className="absolute inset-0 -z-10 pointer-events-none"
         style={{
@@ -215,11 +132,16 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
       />
 
       {/* Content grid */}
-      <div className="relative z-10 w-full max-w-[1400px] px-6 md:px-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-6 lg:gap-10">
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="relative z-10 w-full max-w-[1400px] px-6 md:px-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-6 lg:gap-10"
+      >
         {/* LEFT — info */}
         <motion.div
+          variants={fadeUp}
           className={cn("lg:col-span-4 order-2 lg:order-1", textPrimary)}
-          style={{ x: textX, opacity: textOpacity }}
         >
           {/* Category chip */}
           <div className="flex items-center gap-3 mb-4 md:mb-6">
@@ -264,7 +186,7 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
 
           {/* Sizes */}
           {product.sizes && (
-            <div className="mt-5 md:mt-6">
+            <motion.div variants={fadeUp} className="mt-5 md:mt-6">
               <div
                 className={cn(
                   "text-[10px] uppercase tracking-[0.22em] mb-2",
@@ -294,12 +216,12 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           )}
 
           {/* Colors */}
           {product.colors && (
-            <div className="mt-4">
+            <motion.div variants={fadeUp} className="mt-4">
               <div
                 className={cn(
                   "text-[10px] uppercase tracking-[0.22em] mb-2",
@@ -326,21 +248,14 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
                   );
                 })}
               </div>
-            </div>
+            </motion.div>
           )}
         </motion.div>
 
         {/* CENTER — image */}
         <div className="lg:col-span-5 order-1 lg:order-2 relative h-[42vh] sm:h-[48vh] lg:h-[70vh] flex items-center justify-center">
           <motion.div
-            style={{
-              x: imageX,
-              y: imageY,
-              scale: imageScale,
-              rotate: imageRotate,
-              opacity: imageOpacity,
-              filter,
-            }}
+            variants={imageReveal}
             className="relative w-full h-full flex items-center justify-center will-change-transform"
           >
             {/* Floor shadow */}
@@ -369,11 +284,11 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
 
         {/* RIGHT — price & CTA */}
         <motion.div
+          variants={fadeUp}
           className={cn(
             "lg:col-span-3 order-3 flex flex-col lg:items-end",
             textPrimary
           )}
-          style={{ opacity: ctaOpacity, y: ctaY }}
         >
           <div className="w-full max-w-xs lg:text-right">
             {/* Discount badge */}
@@ -430,9 +345,7 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
                 className={cn(
                   "w-full h-12 rounded-full font-medium text-sm tracking-wide border transition-all duration-300",
                   borderCol,
-                  isDark
-                    ? "hover:bg-white/10"
-                    : "hover:bg-black/5"
+                  isDark ? "hover:bg-white/10" : "hover:bg-black/5"
                 )}
               >
                 Ajouter au panier
@@ -449,13 +362,7 @@ export function ProductScene({ product, index, globalProgress, isActive }: Props
             </div>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
     </section>
   );
-}
-
-// Small helper to avoid circular import; products length is read lazily.
-function productsLengthFromContext() {
-  // This is set via a module-level variable that ScrollShowcase writes to.
-  return (globalThis as any).__PRODUCTS_LEN__ ?? 1;
 }
