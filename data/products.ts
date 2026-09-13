@@ -141,4 +141,29 @@ export const products: Product[] = [
     ],
     badge: "Édition limitée",
   },
+  {
+  id: "air-max-purple",                    // معرف فريد
+  name: "Nike Air Max Purple",
+  category: "Performance Sneaker",
+  headline: "Bold color. Bold moves.",
+  description: "A statement silhouette with purple accents...",
+  price: 17900,
+  oldPrice: 21900,                         // اختياري
+  discount: 18,                            // اختياري
+  image: "/products/shoe-purple.png",      // ضع الصورة في public/products/
+  palette: {
+    from: "#1a0033",
+    via: "#6b21a8",
+    to: "#a855f7",
+    accent: "#d8b4fe",
+    glow: "rgba(168,85,247,0.35)",
+  },
+  theme: "dark",                           // أو "light"
+  sizes: ["39", "40", "41", "42", "43", "44"],
+  colors: [
+    { name: "Purple", hex: "#a855f7" },
+    { name: "Black", hex: "#000000" },
+  ],
+  badge: "Édition limitée",                // اختياري
+},
 ];
