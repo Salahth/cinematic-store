@@ -4,24 +4,74 @@ import { useEffect, useState } from "react";
 import { useCart } from "@/store/cart";
 import { formatDZD } from "@/lib/utils";
 
-const WILAYAS = [
-  "Alger",
-  "Oran",
-  "Constantine",
-  "Annaba",
-  "Blida",
-  "Sétif",
-  "Batna",
-  "Tlemcen",
-  "Béjaïa",
-  "Tizi Ouzou",
-  "Djelfa",
-  "Biskra",
-  "Ouargla",
-  "Ghardaïa",
-  "Adrar",
-  "Tamanrasset",
+// بيانات الولايات مع أسعار التوصيل للمنزل والمكتب
+const WILAYAS_DATA: {
+  code: string;
+  name: string;
+  home: number | null;
+  office: number | null;
+}[] = [
+  { code: "01", name: "أدرار", home: 1250, office: 800 },
+  { code: "02", name: "الشلف", home: 800, office: 450 },
+  { code: "03", name: "الأغواط", home: 900, office: 550 },
+  { code: "04", name: "أم البواقي", home: 800, office: 500 },
+  { code: "05", name: "باتنة", home: 850, office: 480 },
+  { code: "06", name: "بجاية", home: 750, office: 480 },
+  { code: "07", name: "بسكرة", home: 900, office: 500 },
+  { code: "08", name: "بشار", home: 1100, office: 700 },
+  { code: "09", name: "البليدة", home: 630, office: 400 },
+  { code: "10", name: "البويرة", home: 750, office: 450 },
+  { code: "11", name: "تمنراست", home: 1600, office: 900 },
+  { code: "12", name: "تبسة", home: 850, office: 500 },
+  { code: "13", name: "تلمسان", home: 800, office: 500 },
+  { code: "14", name: "تيارت", home: 850, office: 480 },
+  { code: "15", name: "تيزي وزو", home: 700, office: 450 },
+  { code: "16", name: "الجزائر", home: 380, office: 300 },
+  { code: "17", name: "الجلفة", home: 950, office: 550 },
+  { code: "18", name: "جيجل", home: 800, office: 450 },
+  { code: "19", name: "سطيف", home: 750, office: 450 },
+  { code: "20", name: "سعيدة", home: 800, office: 500 },
+  { code: "21", name: "سكيكدة", home: 800, office: 450 },
+  { code: "22", name: "سيدي بلعباس", home: 800, office: 450 },
+  { code: "23", name: "عنابة", home: 800, office: 480 },
+  { code: "24", name: "قالمة", home: 850, office: 400 },
+  { code: "25", name: "قسنطينة", home: 800, office: 450 },
+  { code: "26", name: "المدية", home: 800, office: 400 },
+  { code: "27", name: "مستغانم", home: 800, office: 450 },
+  { code: "28", name: "المسيلة", home: 800, office: 450 },
+  { code: "29", name: "معسكر", home: 800, office: 500 },
+  { code: "30", name: "ورقلة", home: 1050, office: 700 },
+  { code: "31", name: "وهران", home: 800, office: 500 },
+  { code: "32", name: "البيض", home: 1100, office: 650 },
+  { code: "33", name: "إليزي", home: null, office: 1100 },
+  { code: "34", name: "برج بوعريريج", home: 750, office: 450 },
+  { code: "35", name: "بومرداس", home: 650, office: 400 },
+  { code: "36", name: "الطارف", home: 850, office: 450 },
+  { code: "37", name: "تندوف", home: 1500, office: 1150 },
+  { code: "38", name: "تيسمسيلت", home: 800, office: 450 },
+  { code: "39", name: "الوادي", home: 1000, office: 750 },
+  { code: "40", name: "خنشلة", home: 850, office: 450 },
+  { code: "41", name: "سوق أهراس", home: 850, office: 450 },
+  { code: "42", name: "تيبازة", home: 650, office: 380 },
+  { code: "43", name: "ميلة", home: 800, office: 450 },
+  { code: "44", name: "عين الدفلى", home: 800, office: 450 },
+  { code: "45", name: "النعامة", home: 1050, office: 650 },
+  { code: "46", name: "عين تموشنت", home: 800, office: 450 },
+  { code: "47", name: "غرداية", home: 1000, office: 650 },
+  { code: "48", name: "غليزان", home: 800, office: 450 },
+  { code: "49", name: "تيميمون", home: 1400, office: 750 },
+  { code: "50", name: "برج باجي مختار", home: 1800, office: null },
+  { code: "51", name: "أولاد جلال", home: 950, office: 600 },
+  { code: "52", name: "بني عباس", home: 1150, office: 600 },
+  { code: "53", name: "إن صالح", home: 1650, office: 950 },
+  { code: "54", name: "عين قزام", home: 1800, office: null },
+  { code: "55", name: "تقرت", home: 1100, office: 700 },
+  { code: "56", name: "جانت", home: null, office: null },
+  { code: "57", name: "المغير", home: 1050, office: 598 },
+  { code: "58", name: "المنيعة", home: 1100, office: 650 },
 ];
+
+type DeliveryType = "home" | "office";
 
 type Form = {
   name: string;
@@ -30,15 +80,17 @@ type Form = {
   commune: string;
   address: string;
   notes: string;
+  deliveryType: DeliveryType;
 };
 
 const initial: Form = {
   name: "",
   phone: "",
-  wilaya: "Alger",
+  wilaya: "16",
   commune: "",
   address: "",
   notes: "",
+  deliveryType: "home",
 };
 
 export function CheckoutModal() {
@@ -47,7 +99,16 @@ export function CheckoutModal() {
   const [form, setForm] = useState<Form>(initial);
   const [done, setDone] = useState(false);
   const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
-  const delivery = 600;
+
+  // حساب سعر التوصيل بناءً على الولاية ونوع التوصيل
+  const selectedWilaya = WILAYAS_DATA.find((w) => w.code === form.wilaya);
+  const deliveryPrice =
+    selectedWilaya?.[form.deliveryType] ?? null;
+  const delivery = deliveryPrice ?? 0;
+
+  const canDeliver =
+    deliveryPrice !== null &&
+    (form.deliveryType === "home" || form.deliveryType === "office");
 
   useEffect(() => {
     const onOpen = () => setOpen(true);
@@ -62,12 +123,31 @@ export function CheckoutModal() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canDeliver) return;
     // In production: POST to your backend.
     setDone(true);
     setTimeout(() => {
       clear();
       close();
     }, 2600);
+  };
+
+  const updateWilaya = (code: string) => {
+    const w = WILAYAS_DATA.find((x) => x.code === code);
+    // إذا كان نوع التوصيل الحالي غير متاح، نبدله تلقائياً
+    let deliveryType = form.deliveryType;
+    if (w) {
+      if (deliveryType === "home" && w.home === null && w.office !== null) {
+        deliveryType = "office";
+      } else if (
+        deliveryType === "office" &&
+        w.office === null &&
+        w.home !== null
+      ) {
+        deliveryType = "home";
+      }
+    }
+    setForm({ ...form, wilaya: code, deliveryType });
   };
 
   return (
@@ -93,7 +173,7 @@ export function CheckoutModal() {
               animate={{ y: 0, opacity: 1, scale: 1 }}
               exit={{ y: 16, opacity: 0, scale: 0.98 }}
               transition={{ type: "spring", stiffness: 340, damping: 32 }}
-              className="w-full max-w-lg bg-neutral-950 text-white rounded-3xl border border-white/10 shadow-2xl overflow-hidden"
+              className="w-full max-w-lg bg-neutral-950 text-white rounded-3xl border border-white/10 shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto"
             >
               {done ? (
                 <div className="p-10 text-center">
@@ -154,19 +234,66 @@ export function CheckoutModal() {
                     <Field label="Wilaya">
                       <select
                         value={form.wilaya}
-                        onChange={(e) =>
-                          setForm({ ...form, wilaya: e.target.value })
-                        }
+                        onChange={(e) => updateWilaya(e.target.value)}
                         className="input"
                       >
-                        {WILAYAS.map((w) => (
-                          <option key={w} value={w} className="bg-neutral-900">
-                            {w}
+                        {WILAYAS_DATA.map((w) => (
+                          <option
+                            key={w.code}
+                            value={w.code}
+                            className="bg-neutral-900"
+                          >
+                            {w.code} - {w.name}
                           </option>
                         ))}
                       </select>
                     </Field>
                   </div>
+
+                  <Field label="Type de livraison">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label
+                        className={`flex items-center justify-center gap-2 h-11 rounded-xl border text-sm cursor-pointer transition-colors ${
+                          form.deliveryType === "home"
+                            ? "border-white/40 bg-white/10"
+                            : "border-white/10 bg-white/5 hover:bg-white/10"
+                        } ${selectedWilaya?.home === null ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="deliveryType"
+                          value="home"
+                          checked={form.deliveryType === "home"}
+                          onChange={() =>
+                            setForm({ ...form, deliveryType: "home" })
+                          }
+                          disabled={selectedWilaya?.home === null}
+                          className="sr-only"
+                        />
+                        <span>🏠 À domicile</span>
+                      </label>
+                      <label
+                        className={`flex items-center justify-center gap-2 h-11 rounded-xl border text-sm cursor-pointer transition-colors ${
+                          form.deliveryType === "office"
+                            ? "border-white/40 bg-white/10"
+                            : "border-white/10 bg-white/5 hover:bg-white/10"
+                        } ${selectedWilaya?.office === null ? "opacity-40 cursor-not-allowed" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="deliveryType"
+                          value="office"
+                          checked={form.deliveryType === "office"}
+                          onChange={() =>
+                            setForm({ ...form, deliveryType: "office" })
+                          }
+                          disabled={selectedWilaya?.office === null}
+                          className="sr-only"
+                        />
+                        <span>🏢 Au bureau</span>
+                      </label>
+                    </div>
+                  </Field>
 
                   <Field label="Commune">
                     <input
@@ -206,18 +333,37 @@ export function CheckoutModal() {
 
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-sm space-y-2">
                     <Row k="Sous-total" v={formatDZD(subtotal)} />
-                    <Row k="Livraison" v={formatDZD(delivery)} />
+                    <Row
+                      k={`Livraison (${form.deliveryType === "home" ? "domicile" : "bureau"})`}
+                      v={
+                        deliveryPrice === null
+                          ? "Non disponible"
+                          : formatDZD(delivery)
+                      }
+                    />
                     <div className="h-px bg-white/10 my-2" />
                     <Row
                       k="Total"
-                      v={formatDZD(subtotal + delivery)}
+                      v={
+                        deliveryPrice === null
+                          ? "—"
+                          : formatDZD(subtotal + delivery)
+                      }
                       bold
                     />
                   </div>
 
+                  {!canDeliver && (
+                    <div className="text-center text-xs text-red-400">
+                      La livraison n'est pas disponible pour cette wilaya avec
+                      ce type de livraison.
+                    </div>
+                  )}
+
                   <button
                     type="submit"
-                    className="w-full h-12 rounded-full bg-white text-black font-medium text-sm hover:shadow-[0_10px_40px_rgba(255,255,255,0.25)] transition-shadow"
+                    disabled={!canDeliver}
+                    className="w-full h-12 rounded-full bg-white text-black font-medium text-sm hover:shadow-[0_10px_40px_rgba(255,255,255,0.25)] transition-shadow disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     Confirmer la commande
                   </button>
